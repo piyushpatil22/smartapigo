@@ -4,29 +4,37 @@ The official Go client for communicating with the Angel Broking Smart APIs.
 
 SmartAPI is a set of REST-like APIs that expose many capabilities required to build a complete investment and trading platform. Execute orders in real time, manage user portfolio, stream live market data (WebSockets), and more, with the simple HTTP API collection.
 
-
 ## Installation
+
 ```
-go get github.com/angel-one/smartapigo
+go get github.com/piyushpatil22/smartapigo
 ```
+
 ## API usage
+
 ```golang
 package main
 
 import (
 	"fmt"
-	SmartApi "github.com/angel-one/smartapigo"
+	SmartApi "github.com/piyushpatil22/smartapigo"
 )
 
 func main() {
 
+	apiKey := "{your-api-key}"
+	clientCode := "{your-client-code}"
+	PIN := "{your-pin}"
 	// Create New Angel Broking Client
-	ABClient := SmartApi.New("ClientCode", "Password","API Key")
+	ABClient := SmartApi.New(clientCode, PIN, apiKey)
 
-	fmt.Println("Client :- ",ABClient)
+	QRCodeSecret := "{your-totp-qr-code-key}"
+
+	// Generate TOTP using the QR Key
+	opt := GeneratePassCode(QRCodeSecret)
 
 	// User Login and Generate User Session
-	session, err := ABClient.GenerateSession("totp here")
+	session, err := ABClient.GenerateSession(otp)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -51,8 +59,6 @@ func main() {
 		return
 	}
 
-	fmt.Println("User Profile :- ", session.UserProfile)
-	fmt.Println("User Session Object :- ", session)
 
 	//Place Order
 	order, err := ABClient.PlaceOrder(SmartApi.OrderParams{Variety: "NORMAL", TradingSymbol: "SBIN-EQ", SymbolToken: "3045", TransactionType: "BUY", Exchange: "NSE", OrderType: "LIMIT", ProductType: "INTRADAY", Duration: "DAY", Price: "19500", SquareOff: "0", StopLoss: "0", Quantity: "1"})
@@ -65,60 +71,39 @@ func main() {
 	fmt.Println("Placed Order ID and Script :- ", order)
 }
 ```
+
 ## Websocket Data Streaming
+
 ```golang
 package main
 
 import (
 	"fmt"
-	SmartApi "github.com/angel-one/smartapigo"
-	"github.com/angel-one/smartapigo/websocket"
+	SmartApi "github.com/piyushpatil22/smartapigo"
+	"github.com/piyushpatil22/smartapigo/websocket"
 	"time"
 )
 
 var socketClient *websocket.SocketClient
 
-// Triggered when any error is raised
-func onError(err error) {
-	fmt.Println("Error: ", err)
-}
-
-// Triggered when websocket connection is closed
-func onClose(code int, reason string) {
-	fmt.Println("Close: ", code, reason)
-}
-
-// Triggered when connection is established and ready to send and accept data
-func onConnect() {
-	fmt.Println("Connected")
-	err := socketClient.Subscribe()
-	if err != nil {
-		fmt.Println("err: ", err)
-	}
-}
-
-// Triggered when a message is received
-func onMessage(message []map[string]interface{})  {
-	fmt.Printf("Message Received :- %v\n",message)
-}
-
-// Triggered when reconnection is attempted which is enabled by default
-func onReconnect(attempt int, delay time.Duration) {
-	fmt.Printf("Reconnect attempt %d in %fs\n", attempt, delay.Seconds())
-}
-
-// Triggered when maximum number of reconnect attempt is made and the program is terminated
-func onNoReconnect(attempt int) {
-	fmt.Printf("Maximum no of reconnect attempt reached: %d\n", attempt)
-}
 
 func main() {
 
-	// Create New Angel Broking Client
-	ABClient := SmartApi.New("ClientCode", "Password","API Key")
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	// You will need a .env file with below fields with appropriate values
+	QRCodeSecret := os.Getenv("QR_CODE")
+	apiKey := os.Getenv("API_KEY")
+	PIN := os.Getenv("PIN")
+	clientCode := os.Getenv("CLIENT_CODE")
+
+	// Generate TOTP using the QR Key
+	opt := GenerateTOTP(QRCodeSecret)
 
 	// User Login and Generate User Session
-	session, err := ABClient.GenerateSession()
+	session, err := ABClient.GenerateSession(otp)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -133,31 +118,47 @@ func main() {
 		return
 	}
 
-	// New Websocket Client
-	socketClient = websocket.New(session.ClientCode,session.FeedToken,"nse_cm|17963&nse_cm|3499&nse_cm|11536&nse_cm|21808&nse_cm|317")
+	// Don't worry about this, this will be abstracted in coming changes, as this is not required at this
+	// level
+	retryParams := websocket.RetryParams{
+		CurrentAttempt:  0,
+		MaxRetryAttempt: 3,
+		RetryDelay:      10,
+		RetryDuration:   60,
+	}
 
-	// Assign callbacks
-	socketClient.OnError(onError)
-	socketClient.OnClose(onClose)
-	socketClient.OnMessage(onMessage)
-	socketClient.OnConnect(onConnect)
-	socketClient.OnReconnect(onReconnect)
-	socketClient.OnNoReconnect(onNoReconnect)
+	newSocket := websocket.NewSocketConnV2(session.AccessToken, session.ClientCode, apiKey, session.FeedToken, retryParams)
 
-	// Start Consuming Data
-	socketClient.Serve()
+	// Mouting user defined funcs is currently not supported. Work on that is in progress
+	newSocket.Connect()
+
+	// For subscribing you need ExchangeType and the token ID of the instrument you want to receive data
+	// of. You can send different types of Exchanges and multiple tokens at once. The current token limit
+	// is 50. A max of 50 tokens can be subscribed at once
+	tokenList := []websocket.TokenSet{
+		{ExchangeType: 1, Tokens: []string{"5900"}},
+	}
+	newSocket.Subscribe("correlationID1", 3, tokenList)
+
+	// As of now this will insta close the connection, will be kepping this infinite
+	// work in progress on that
+	newSocket.CloseConnection()
 
 }
 ```
 
 ## Examples
+
 Check example folder for more examples.
 
 You can run the following after updating the Credentials in the examples:
+
 ```
 go run example/example.go
 ```
+
 For websocket example
+
 ```
 go run example/websocket/example.go
 ```
@@ -166,4 +167,6 @@ go run example/websocket/example.go
 
 ```
 go test -v
+
+#running tests might fail
 ```

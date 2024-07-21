@@ -7,14 +7,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"math"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
+/*
+This client will mostly not work anymore.
+This is deprecated please use SocketClientV2
+For more info look into websocketv2.go
+*/
 type SocketClient struct {
 	Conn                *websocket.Conn
 	url                 url.URL
@@ -59,6 +65,7 @@ var (
 )
 
 // New creates a new ticker instance.
+// This is deprecated. Please use NewSocketConnV2
 func New(clientCode string, feedToken string, scrips string) *SocketClient {
 	sc := &SocketClient{
 		clientCode:          clientCode,
