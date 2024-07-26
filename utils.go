@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/pquerna/otp/totp"
 )
 
 type Time struct {
@@ -172,4 +174,12 @@ func getPublicIp() (string, error) {
 		return "", err
 	}
 	return string(content), nil
+}
+
+func GenerateTOTP(utf8string string) string {
+	passcode, err := totp.GenerateCode(utf8string, time.Now())
+	if err != nil {
+		return ""
+	}
+	return passcode
 }

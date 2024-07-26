@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 	SmartApi "github.com/piyushpatil22/smartapigo"
 	"github.com/piyushpatil22/smartapigo/websocket"
-	"github.com/pquerna/otp/totp"
 )
 
 var dataChannel = make(chan []byte, 100)
@@ -26,7 +24,7 @@ func main() {
 	clientCode := os.Getenv("CLIENT_CODE")
 
 	// Generate TOTP using the secret
-	opt := GenerateTOTP(QRCodeSecret)
+	opt := SmartApi.GenerateTOTP(QRCodeSecret)
 
 	ABClient := SmartApi.New(clientCode, PIN, apiKey)
 
@@ -62,18 +60,10 @@ func main() {
 		{ExchangeType: 1, Tokens: []string{"5900"}},
 	}
 	newSocket.Subscribe("correlationID1", 1, tokenList)
-	
+
 	go processData()
 
 	newSocket.Serve()
-}
-
-func GenerateTOTP(utf8string string) string {
-	passcode, err := totp.GenerateCode(utf8string, time.Now())
-	if err != nil {
-		return ""
-	}
-	return passcode
 }
 
 func onMessage(message []byte) {
