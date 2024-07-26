@@ -78,7 +78,7 @@ type DepthData struct {
 	NumOfOrders int16
 }
 
-func parseBinaryData(binaryData []byte) (ParsedData, error) {
+func ParseBinaryData(binaryData []byte) (ParsedData, error) {
 	var parsedData ParsedData
 
 	parsedData.SubscriptionMode = SubscriptionMode(binaryData[0])

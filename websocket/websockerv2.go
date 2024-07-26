@@ -54,6 +54,7 @@ var (
 type SocketClientV2 struct {
 	Auth_token        string
 	Api_key           string
+	callbacks         callbacksV2
 	Client_code       string
 	Feed_token        string
 	disconnectFlag    bool
@@ -64,6 +65,15 @@ type SocketClientV2 struct {
 	logger            *logrus.Logger
 	wsConn            *websocket.Conn
 	mutex             sync.Mutex
+}
+
+type callbacksV2 struct {
+	onMessage     func([]byte)
+	onNoReconnect func(int)
+	onReconnect   func(int, time.Duration)
+	onConnect     func()
+	onClose       func(int, string)
+	onError       func(error)
 }
 
 type RetryParams struct {
@@ -108,11 +118,18 @@ func (s *SocketClientV2) Connect() {
 	conn, _, err := dialer.Dial(ROOT_URI, headers)
 	if err != nil {
 		s.logger.Errorf("Error connecting to websocket")
+		s.triggerError(err)
 	}
 
 	s.wsConn = conn
 
+	defer s.wsConn.Close()
+
+	s.triggerConnect()
+
 	s.logger.Info("Connected to websocket!!")
+
+	s.wsConn.SetCloseHandler(s.handleClose)
 
 	s.wsConn.SetPongHandler(func(appData string) error {
 		s.onPong(appData)
@@ -125,7 +142,6 @@ func (s *SocketClientV2) Connect() {
 	})
 
 	go s.runHeartbeat()
-	go s.readMessages()
 }
 
 func (sw *SocketClientV2) onPong(appData string) {
@@ -137,6 +153,20 @@ func (sw *SocketClientV2) onPing(appData string) {
 	sw.logger.Infof("Received ping: %s", appData)
 }
 
+func (sw *SocketClientV2) Serve() {
+	for {
+		//reconnect logic
+		sw.mutex.Lock()
+
+		if sw.disconnectFlag {
+			sw.mutex.Unlock()
+			return
+		}
+		//need to handle reconnect
+
+		sw.readMessages()
+	}
+}
 func (sw *SocketClientV2) runHeartbeat() {
 	ticker := time.NewTicker(HEART_BEAT_INTERVAL * time.Second)
 	defer ticker.Stop()
@@ -161,7 +191,7 @@ func (sw *SocketClientV2) readMessages() {
 			sw.handleReconnect()
 			return
 		}
-		sw.logger.Infof("Received message: %s", message)
+		go sw.triggerMessage(message)
 		sw.handleMessage(message)
 	}
 }
@@ -172,15 +202,6 @@ func (sw *SocketClientV2) handleMessage(message []byte) {
 		return
 	}
 
-	if string(message) != "pong" {
-		data, err := parseBinaryData(message)
-		if err != nil {
-			sw.logger.Error(err)
-		} else {
-			sw.logger.Infof("%+v", data)
-		}
-	}
-	// Process other messages (binary data, etc.)
 }
 
 func (sw *SocketClientV2) handleReconnect() {
@@ -197,6 +218,78 @@ func (sw *SocketClientV2) handleReconnect() {
 	} else {
 		sw.logger.Warn("Max retry attempts reached, closing connection.")
 	}
+}
+
+// Trigger callback methods
+func (s *SocketClientV2) triggerError(err error) {
+	if s.callbacks.onError != nil {
+		s.callbacks.onError(err)
+	}
+}
+
+func (s *SocketClientV2) triggerClose(code int, reason string) {
+	if s.callbacks.onClose != nil {
+		s.callbacks.onClose(code, reason)
+	}
+}
+
+func (s *SocketClientV2) triggerConnect() {
+	if s.callbacks.onConnect != nil {
+		s.callbacks.onConnect()
+	}
+}
+
+func (s *SocketClientV2) triggerReconnect(attempt int, delay time.Duration) {
+	if s.callbacks.onReconnect != nil {
+		s.callbacks.onReconnect(attempt, delay)
+	}
+}
+
+func (s *SocketClientV2) triggerNoReconnect(attempt int) {
+	if s.callbacks.onNoReconnect != nil {
+		s.callbacks.onNoReconnect(attempt)
+	}
+}
+
+func (s *SocketClientV2) triggerMessage(message []byte) {
+	if s.callbacks.onMessage != nil {
+		s.callbacks.onMessage(message)
+	}
+}
+
+func (s *SocketClientV2) handleClose(code int, reason string) error {
+	s.triggerClose(code, reason)
+	return nil
+}
+
+// OnConnect callback.
+func (s *SocketClientV2) OnConnect(f func()) {
+	s.callbacks.onConnect = f
+}
+
+// OnError callback.
+func (s *SocketClientV2) OnError(f func(err error)) {
+	s.callbacks.onError = f
+}
+
+// OnClose callback.
+func (s *SocketClientV2) OnClose(f func(code int, reason string)) {
+	s.callbacks.onClose = f
+}
+
+// OnMessage callback.
+func (s *SocketClientV2) OnMessage(f func(message []byte)) {
+	s.callbacks.onMessage = f
+}
+
+// OnReconnect callback.
+func (s *SocketClientV2) OnReconnect(f func(attempt int, delay time.Duration)) {
+	s.callbacks.onReconnect = f
+}
+
+// OnNoReconnect callback.
+func (s *SocketClientV2) OnNoReconnect(f func(attempt int)) {
+	s.callbacks.onNoReconnect = f
 }
 
 func (sw *SocketClientV2) Subscribe(correlationID string, mode int, tokenList []TokenSet) {

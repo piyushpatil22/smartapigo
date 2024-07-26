@@ -12,6 +12,8 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
+var dataChannel = make(chan []byte, 100)
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file")
@@ -54,17 +56,16 @@ func main() {
 	newSocket := websocket.NewSocketConnV2(session.AccessToken, session.ClientCode, apiKey, session.FeedToken, retryParams)
 
 	newSocket.Connect()
-
+	newSocket.OnMessage(onMessage)
 
 	tokenList := []websocket.TokenSet{
 		{ExchangeType: 1, Tokens: []string{"5900"}},
 	}
-	newSocket.Subscribe("correlationID1", 3, tokenList)
+	newSocket.Subscribe("correlationID1", 1, tokenList)
+	
+	go processData()
 
-	//TODO make connection stay longer (infinite time)
-	time.Sleep(60 * time.Minute)
-	newSocket.CloseConnection()
-
+	newSocket.Serve()
 }
 
 func GenerateTOTP(utf8string string) string {
@@ -73,4 +74,34 @@ func GenerateTOTP(utf8string string) string {
 		return ""
 	}
 	return passcode
+}
+
+func onMessage(message []byte) {
+	dataChannel <- message
+}
+
+func processData() {
+	token_106298 := 0
+	token_106299 := 0
+	token_106300 := 0
+	token_5900 := 0
+	for data := range dataChannel {
+		parsDT, err := websocket.ParseBinaryData(data)
+		if err != nil {
+			log.Println(err)
+		}
+		if parsDT.Token == "106298" {
+			token_106298++
+		}
+		if parsDT.Token == "5900" {
+			token_5900++
+		}
+		if parsDT.Token == "106299" {
+			token_106299++
+		}
+		if parsDT.Token == "106300" {
+			token_106300++
+		}
+		log.Printf("Counts 5900: %d 298: %d 299: %d 300: %d", token_5900, token_106298, token_106299, token_106300)
+	}
 }
