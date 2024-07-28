@@ -23,7 +23,6 @@ type Holding struct {
 // Holdings is a list of holdings
 type Holdings []Holding
 
-
 // GetHoldings gets a list of holdings.
 func (c *Client) GetHoldings() (Holdings, error) {
 	var holdings Holdings

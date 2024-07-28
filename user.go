@@ -34,7 +34,7 @@ type UserProfile struct {
 // Do the token exchange with the `requestToken` obtained after the login flow,
 // and retrieve the `accessToken` required for all subsequent requests. The
 // response contains not just the `accessToken`, but metadata for the user who has authenticated.
-//totp used is required for 2 factor authentication
+// totp used is required for 2 factor authentication
 func (c *Client) GenerateSession(totp string) (UserSession, error) {
 
 	// construct url values

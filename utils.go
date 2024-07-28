@@ -58,6 +58,15 @@ func structToMap(obj interface{}, tagName string) map[string]interface{} {
 			con := obj.(ConvertPositionParams)
 			values = reflect.ValueOf(&con).Elem()
 		}
+	case SearchScripPayload:
+		{
+			con := obj.(SearchScripPayload)
+			values = reflect.ValueOf(&con).Elem()
+		}
+	default:
+		{
+			return nil
+		}
 	}
 
 	tags := reflect.TypeOf(obj)
