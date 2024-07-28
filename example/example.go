@@ -34,102 +34,110 @@ func main() {
 		return
 	}
 
-	searchScrip := SmartApi.SearchScripPayload{
-		Exchange:    SmartApi.NFO,
-		SearchScrip: "SUNPHARMA",
-	}
-	res, err := ABClient.SearchScrip(searchScrip)
+	list, err := ABClient.FetchDailyInstrumentsList()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	for _, item := range res {
+	for _, item := range list {
 		log.Println(item)
 	}
-	//Place Order
-	order, err := ABClient.PlaceOrder(SmartApi.OrderParams{Variety: "NORMAL", TradingSymbol: "SBIN-EQ", SymbolToken: "3045", TransactionType: "BUY", Exchange: "NSE", OrderType: "LIMIT", ProductType: "INTRADAY", Duration: "DAY", Price: "19500", SquareOff: "0", StopLoss: "0", Quantity: "1"})
+	// searchScrip := SmartApi.SearchScripPayload{
+	// 	Exchange:    SmartApi.NFO,
+	// 	SearchScrip: "SUNPHARMA",
+	// }
+	// res, err := ABClient.SearchScrip(searchScrip)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
+	// for _, item := range res {
+	// 	log.Println(item)
+	// }
+	// //Place Order
+	// order, err := ABClient.PlaceOrder(SmartApi.OrderParams{Variety: "NORMAL", TradingSymbol: "SBIN-EQ", SymbolToken: "3045", TransactionType: "BUY", Exchange: "NSE", OrderType: "LIMIT", ProductType: "INTRADAY", Duration: "DAY", Price: "19500", SquareOff: "0", StopLoss: "0", Quantity: "1"})
 
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	//Modify Order
-	modifiedOrder, err := ABClient.ModifyOrder(SmartApi.ModifyOrderParams{Variety: "NORMAL", OrderID: order.OrderID, OrderType: "LIMIT", ProductType: "INTRADAY", Duration: "DAY", Price: "19400", Quantity: "1", TradingSymbol: "SBI-EQ", SymbolToken: "3045", Exchange: "NSE"})
+	// //Modify Order
+	// modifiedOrder, err := ABClient.ModifyOrder(SmartApi.ModifyOrderParams{Variety: "NORMAL", OrderID: order.OrderID, OrderType: "LIMIT", ProductType: "INTRADAY", Duration: "DAY", Price: "19400", Quantity: "1", TradingSymbol: "SBI-EQ", SymbolToken: "3045", Exchange: "NSE"})
 
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	fmt.Println("Modified Order ID :- ", modifiedOrder)
+	// fmt.Println("Modified Order ID :- ", modifiedOrder)
 
-	//Cancel Order
-	cancelledOrder, err := ABClient.CancelOrder("NORMAL", modifiedOrder.OrderID)
+	// //Cancel Order
+	// cancelledOrder, err := ABClient.CancelOrder("NORMAL", modifiedOrder.OrderID)
 
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	fmt.Println("Cancelled Order ID :- ", cancelledOrder)
+	// fmt.Println("Cancelled Order ID :- ", cancelledOrder)
 
-	//Get Holdings
-	holdings, err := ABClient.GetHoldings()
+	// //Get Holdings
+	// holdings, err := ABClient.GetHoldings()
 
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// } else {
 
-		fmt.Println("Holdings :- ", holdings)
-	}
+	// 	fmt.Println("Holdings :- ", holdings)
+	// }
 
-	//Get Positions
-	positions, err := ABClient.GetPositions()
+	// //Get Positions
+	// positions, err := ABClient.GetPositions()
 
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// } else {
 
-		fmt.Println("Positions :- ", positions)
-	}
+	// 	fmt.Println("Positions :- ", positions)
+	// }
 
-	//Get TradeBook
-	trades, err := ABClient.GetTradeBook()
+	// //Get TradeBook
+	// trades, err := ABClient.GetTradeBook()
 
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// } else {
 
-		fmt.Println("All Trades :- ", trades)
-	}
+	// 	fmt.Println("All Trades :- ", trades)
+	// }
 
-	//Get Last Traded Price
-	ltp, err := ABClient.GetLTP(SmartApi.LTPParams{Exchange: "NSE", TradingSymbol: "SBIN-EQ", SymbolToken: "3045"})
+	// //Get Last Traded Price
+	// ltp, err := ABClient.GetLTP(SmartApi.LTPParams{Exchange: "NSE", TradingSymbol: "SBIN-EQ", SymbolToken: "3045"})
 
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	fmt.Println("Last Traded Price :- ", ltp)
+	// fmt.Println("Last Traded Price :- ", ltp)
 
-	//Get Risk Management System
-	rms, err := ABClient.GetRMS()
+	// //Get Risk Management System
+	// rms, err := ABClient.GetRMS()
 
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	fmt.Println("Risk Managemanet System :- ", rms)
+	// fmt.Println("Risk Managemanet System :- ", rms)
 
-	//Position Conversion
-	err = ABClient.ConvertPosition(SmartApi.ConvertPositionParams{"NSE", "SBIN-EQ", "INTRADAY", "MARGIN", "BUY", 1, "DAY"})
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// //Position Conversion
+	// err = ABClient.ConvertPosition(SmartApi.ConvertPositionParams{"NSE", "SBIN-EQ", "INTRADAY", "MARGIN", "BUY", 1, "DAY"})
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	fmt.Println("Position Conversion Successful")
+	// fmt.Println("Position Conversion Successful")
 }

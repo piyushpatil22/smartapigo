@@ -2,6 +2,7 @@ package smartapigo
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	_ "fmt"
 	"net/http"
 	"time"
@@ -20,23 +21,23 @@ type Client struct {
 
 const (
 	name           string        = "smartapi-go"
-	requestTimeout time.Duration = 7000 * time.Millisecond
+	requestTimeout time.Duration = 5 * time.Minute
 	baseURI        string        = "https://apiconnect.angelbroking.com/"
 )
 
 // New creates a new Smart API client.
-func New(clientCode string,password string,apiKey string) *Client {
+func New(clientCode string, password string, apiKey string) *Client {
 	client := &Client{
 		clientCode: clientCode,
-		password: password,
-		apiKey: apiKey,
-		baseURI: baseURI,
+		password:   password,
+		apiKey:     apiKey,
+		baseURI:    baseURI,
 	}
 
 	// Create a default http handler with default timeout.
 	client.SetHTTPClient(&http.Client{
-		Timeout: requestTimeout,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify : true}},
+		Timeout:   requestTimeout,
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
 	})
 
 	return client
@@ -80,7 +81,7 @@ func (c *Client) doEnvelope(method, uri string, params map[string]interface{}, h
 		headers = map[string][]string{}
 	}
 
-	localIp,publicIp,mac,err := getIpAndMac()
+	localIp, publicIp, mac, err := getIpAndMac()
 
 	if err != nil {
 		return err
@@ -94,14 +95,21 @@ func (c *Client) doEnvelope(method, uri string, params map[string]interface{}, h
 	headers.Add("Accept", "application/json")
 	headers.Add("X-UserType", "USER")
 	headers.Add("X-SourceID", "WEB")
-	headers.Add("X-PrivateKey",c.apiKey)
-	if authorization != nil && authorization[0]{
-		headers.Add("Authorization","Bearer "+c.accessToken)
+	headers.Add("X-PrivateKey", c.apiKey)
+	if authorization != nil && authorization[0] {
+		headers.Add("Authorization", "Bearer "+c.accessToken)
 	}
 
 	return c.httpClient.DoEnvelope(method, c.baseURI+uri, params, headers, v)
 }
 
-
-
-
+func (c *Client) do(method, url string, params map[string]interface{}, headers http.Header, v interface{}) error {
+	resp, err := c.httpClient.Do(method, url, params, headers)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(resp.Body, &v); err != nil {
+		return err
+	}
+	return nil
+}

@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -113,7 +112,7 @@ func (h *httpClient) Do(method, rURL string, params map[string]interface{}, head
 
 	defer r.Body.Close()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.hLog.Printf("Unable to read response: %v", err)
 		return resp, err
